@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Создать дефект - Defect Tracker{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="bi bi-plus-circle"></i> Создание нового дефекта
+                </h4>
+            </div>
+            
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="title" class="form-label">
+                                <i class="bi bi-pencil"></i> Название дефекта *
+                            </label>
+                            <input type="text" class="form-control" id="title" name="title" required>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="severity" class="form-label">
+                                <i class="bi bi-exclamation-circle"></i> Уровень серьёзности *
+                            </label>
+                            <select class="form-select" id="severity" name="severity" required>
+                                <option value="low">Низкий</option>
+                                <option value="medium" selected>Средний</option>
+                                <option value="high">Высокий</option>
+                                <option value="critical">Критический</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="location" class="form-label">
+                            <i class="bi bi-geo-alt"></i> Местоположение *
+                        </label>
+                        <input type="text" class="form-control" id="location" name="location" 
+                               placeholder="Например: Корпус А, этаж 2, комната 201" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">
+                            <i class="bi bi-text-paragraph"></i> Описание дефекта *
+                        </label>
+                        <textarea class="form-control" id="description" name="description" rows="5" 
+                                  placeholder="Подробно опишите обнаруженный дефект..." required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="photos" class="form-label">
+                            <i class="bi bi-camera"></i> Фотографии
+                        </label>
+                        <input type="file" class="form-control" id="photos" name="photos" 
+                               accept="image/*" multiple>
+                        <div class="form-text">
+                            Можно загрузить несколько фотографий. Поддерживаются форматы: JPG, PNG, GIF.
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('defects.list_defects') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left"></i> Назад к списку
+                        </a>
+                        
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Создать дефект
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('photos').addEventListener('change', function(e) {
+    const files = e.target.files;
+    if (files.length > 0) {
+        let fileNames = [];
+        for (let i = 0; i < files.length; i++) {
+            fileNames.push(files[i].name);
+        }
+        console.log('Выбрано файлов: ' + files.length);
+    }
+});
+</script>
+{% endblock %}
