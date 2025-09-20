@@ -13,7 +13,6 @@ dashboard_bp = Blueprint('dashboard', __name__)
 @login_required
 def dashboard():
     """Main dashboard with role-based content"""
-    # Import here to avoid circular import
     from app import Defect, User, Assignment, db
     
     # Get statistics based on user role
@@ -78,7 +77,6 @@ def dashboard():
 @login_required
 def reports():
     """Reports page (Managers and Observers)"""
-    # Import here to avoid circular import
     from app import Defect, User, Assignment, db
     
     if not (current_user.is_manager or current_user.is_observer):

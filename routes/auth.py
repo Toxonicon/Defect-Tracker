@@ -3,7 +3,7 @@
 Authentication routes
 """
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request
+from flask import Blueprint, render_template, redirect, url_for, flash, request, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from werkzeug.security import check_password_hash
 
@@ -11,8 +11,7 @@ auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    # Import here to avoid circular import
-    from app import User, db
+    from app import db, User
     
     if current_user.is_authenticated:
         return redirect(url_for('dashboard.dashboard'))
@@ -41,8 +40,7 @@ def logout():
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    # Import here to avoid circular import
-    from app import User, db
+    from app import db, User
     
     if request.method == 'POST':
         username = request.form['username']

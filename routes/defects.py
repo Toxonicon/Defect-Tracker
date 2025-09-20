@@ -28,7 +28,6 @@ def resize_image(image_path, max_size=(800, 600)):
 @login_required
 def list_defects():
     """List defects based on user role"""
-    # Import here to avoid circular import
     from app import Defect, User, Assignment, db
     
     page = request.args.get('page', 1, type=int)
@@ -70,7 +69,6 @@ def list_defects():
 @login_required
 def create_defect():
     """Create new defect (Engineers only)"""
-    # Import here to avoid circular import
     from app import Defect, DefectPhoto, db
     
     if not current_user.is_engineer and not current_user.is_manager:
@@ -133,7 +131,6 @@ def create_defect():
 @login_required
 def view_defect(id):
     """View defect details"""
-    # Import here to avoid circular import
     from app import Defect, Comment, db
     
     defect = Defect.query.get_or_404(id)
@@ -155,7 +152,6 @@ def view_defect(id):
 @login_required
 def assign_defect(id):
     """Assign defect to user (Managers only)"""
-    # Import here to avoid circular import
     from app import Defect, Assignment, db
     
     if not current_user.is_manager:
@@ -194,7 +190,6 @@ def assign_defect(id):
 @login_required
 def update_status(id):
     """Update defect status"""
-    # Import here to avoid circular import
     from app import Defect, Assignment, db
     
     defect = Defect.query.get_or_404(id)
@@ -226,7 +221,6 @@ def update_status(id):
 @login_required
 def add_comment(id):
     """Add comment to defect"""
-    # Import here to avoid circular import
     from app import Defect, Comment, db
     
     defect = Defect.query.get_or_404(id)
@@ -252,7 +246,6 @@ def add_comment(id):
 @login_required
 def users_json():
     """API endpoint to get users for assignment dropdown"""
-    # Import here to avoid circular import
     from app import User
     
     if not current_user.is_manager:
