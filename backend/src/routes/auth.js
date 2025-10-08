@@ -1,49 +1,177 @@
-// routes/auth.js
-const express = require('express');
-const router = express.Router();
-const db = require('../db');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import User from '../models/User.js';
+import { logger } from '../utils/logger.js';
 
+const router = express.Router();
+
+// Регистрация пользователя
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, name, role } = req.body;
-    if (!email || !password) return res.status(400).json({ error: 'email & password required' });
-    const { rows } = await db.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (rows.length) return res.status(400).json({ error: 'User exists' });
-    const hash = await bcrypt.hash(password, 10);
-    const r = await db.query(
-      'INSERT INTO users (email, password_hash, name, role) VALUES ($1,$2,$3,$4) RETURNING id,email,name,role',
-      [email, hash, name || null, role || 'engineer']
+    const { email, password, firstName, lastName, role, position, phone } = req.body;
+
+    // Проверяем существует ли пользователь
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Пользователь с таким email уже существует'
+      });
+    }
+
+    // Хешируем пароль
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    // Создаем пользователя
+    const user = new User({
+      email,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      role,
+      position,
+      phone
+    });
+
+    await user.save();
+
+    // Создаем JWT токен
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'default-secret',
+      { expiresIn: '24h' }
     );
-    const user = r.rows[0];
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
-    res.status(201).json({ token, user });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
+
+    logger.info(`New user registered: ${email}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Пользователь успешно зарегистрирован',
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        role: user.role,
+        position: user.position,
+        phone: user.phone
+      }
+    });
+  } catch (error) {
+    logger.error('Registration error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при регистрации пользователя'
+    });
   }
 });
 
+// Авторизация
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    const { rows } = await db.query('SELECT id,email,password_hash,name,role FROM users WHERE email = $1', [email]);
-    if (!rows.length) return res.status(400).json({ error: 'Invalid credentials' });
-    const user = rows[0];
-    const ok = await bcrypt.compare(password, user.password_hash);
-    if (!ok) return res.status(400).json({ error: 'Invalid credentials' });
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '1h' });
+
+    // Находим пользователя
+    const user = await User.findOne({ email, isActive: true });
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Неверный email или пароль'
+      });
+    }
+
+    // Проверяем пароль
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: 'Неверный email или пароль'
+      });
+    }
+
+    // Обновляем время последнего входа
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Создаем JWT токен
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'default-secret',
+      { expiresIn: '24h' }
+    );
+
+    logger.info(`User logged in: ${email}`);
+
     res.json({
+      success: true,
+      message: 'Авторизация успешна',
       token,
-      user: { id: user.id, email: user.email, name: user.name, role: user.role }
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        role: user.role,
+        position: user.position,
+        phone: user.phone,
+        avatar: user.avatar
+      }
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
+  } catch (error) {
+    logger.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при авторизации'
+    });
   }
 });
 
-module.exports = router;
+// Получение профиля пользователя
+router.get('/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Токен не предоставлен'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'default-secret');
+    const user = await User.findById(decoded.userId);
+
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        message: 'Пользователь не найден'
+      });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        fullName: user.fullName,
+        role: user.role,
+        position: user.position,
+        phone: user.phone,
+        avatar: user.avatar
+      }
+    });
+  } catch (error) {
+    logger.error('Profile error:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Недействительный токен'
+    });
+  }
+});
+
+export default router;

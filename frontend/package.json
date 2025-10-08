@@ -1,12 +1,30 @@
 {
-  "name": "defect-frontend",
-  "version": "1.0.0",
+  "name": "frontend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
+  },
   "scripts": {
-    "dev": "nuxt dev --hostname 0.0.0.0 --port 3000",
-    "build": "nuxt build",
-    "start": "nuxt start --hostname 0.0.0.0 --port 3000"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
-    "nuxt": "^3.8.0"
+    "@headlessui/vue": "^1.7.23",
+    "@heroicons/vue": "^2.2.0",
+    "@tailwindcss/forms": "^0.5.10",
+    "@vueuse/core": "^13.9.0",
+    "axios": "^1.12.2",
+    "pinia": "^3.0.3",
+    "tailwindcss": "^4.1.13",
+    "vue": "^3.5.22",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "vite": "^7.1.7",
+    "vite-plugin-vue-devtools": "^8.0.2"
   }
 }

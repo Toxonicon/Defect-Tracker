@@ -1,114 +1,309 @@
-// routes/defects.js
-const express = require('express');
+import express from 'express';
+import Defect from '../models/Defect.js';
+import Project from '../models/Project.js';
+import { logger } from '../utils/logger.js';
+
 const router = express.Router();
-const db = require('../db');
-const multer = require('multer');
-const path = require('path');
 
-const upload = multer({
-  dest: path.join(__dirname, '../../uploads/'),
-  limits: { fileSize: 10 * 1024 * 1024 } // 10 MB
-});
-
-// List defects (filtering)
+// Получить все дефекты с фильтрацией
 router.get('/', async (req, res) => {
   try {
-    const { status, priority, project } = req.query;
-    const q = `
-      SELECT d.*, p.title as project_title,
-        rep.email as reporter_email, assignee.email as assignee_email
-      FROM defects d
-      LEFT JOIN projects p ON p.id = d.project_id
-      LEFT JOIN users rep ON rep.id = d.reporter_id
-      LEFT JOIN users assignee ON assignee.id = d.assignee_id
-      WHERE ($1::text IS NULL OR d.status = $1)
-        AND ($2::text IS NULL OR d.priority = $2)
-        AND ($3::int IS NULL OR d.project_id = $3)
-      ORDER BY d.created_at DESC
-      LIMIT 100
-    `;
-    const params = [status || null, priority || null, project ? Number(project) : null];
-    const { rows } = await db.query(q, params);
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
+    const { 
+      status, 
+      severity, 
+      category, 
+      project, 
+      assignee, 
+      page = 1, 
+      limit = 20,
+      sort = '-createdAt'
+    } = req.query;
+
+    const filters = {};
+    if (status) filters.status = status;
+    if (severity) filters.severity = severity;
+    if (category) filters.category = category;
+    if (project) filters.project = project;
+    if (assignee) filters.assignee = assignee;
+
+    const defects = await Defect.find(filters)
+      .populate('project', 'name location')
+      .populate('reporter', 'firstName lastName email role')
+      .populate('assignee', 'firstName lastName email role')
+      .sort(sort)
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const total = await Defect.countDocuments(filters);
+
+    res.json({
+      success: true,
+      data: defects,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    logger.error('Get defects error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при получении дефектов'
+    });
   }
 });
 
-// Create defect (with files)
-router.post('/', upload.array('attachments'), async (req, res) => {
+// Получить дефект по ID
+router.get('/:id', async (req, res) => {
   try {
-    const { title, description, projectId, priority, assigneeId, dueDate } = req.body;
-    if (!title) return res.status(400).json({ error: 'title required' });
+    const defect = await Defect.findById(req.params.id)
+      .populate('project', 'name location manager')
+      .populate('reporter', 'firstName lastName email role avatar')
+      .populate('assignee', 'firstName lastName email role avatar')
+      .populate('comments.author', 'firstName lastName email role avatar')
+      .populate('statusHistory.changedBy', 'firstName lastName email role');
 
-    const insertQ = `INSERT INTO defects
-      (project_id, title, description, priority, reporter_id, assignee_id, due_date)
-      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`;
-    const params = [
-      projectId ? Number(projectId) : null,
+    if (!defect) {
+      return res.status(404).json({
+        success: false,
+        message: 'Дефект не найден'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: defect
+    });
+  } catch (error) {
+    logger.error('Get defect error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при получении дефекта'
+    });
+  }
+});
+
+// Создать новый дефект
+router.post('/', async (req, res) => {
+  try {
+    const {
       title,
-      description || null,
-      priority || 'medium',
-      req.user ? req.user.id : null,
-      assigneeId ? Number(assigneeId) : null,
-      dueDate ? dueDate : null
-    ];
-    const { rows } = await db.query(insertQ, params);
-    const defect = rows[0];
+      description,
+      category,
+      severity,
+      priority,
+      project,
+      reporter,
+      location,
+      estimatedHours,
+      dueDate
+    } = req.body;
 
-    // attachments
-    if (req.files && req.files.length) {
-      for (const f of req.files) {
-        const url = `/uploads/${f.filename}`;
-        await db.query(
-          'INSERT INTO attachments (defect_id, filename, original_name, url, uploaded_by) VALUES ($1,$2,$3,$4,$5)',
-          [defect.id, f.filename, f.originalname, url, req.user ? req.user.id : null]
-        );
+    // Проверяем существование проекта
+    const projectExists = await Project.findById(project);
+    if (!projectExists) {
+      return res.status(404).json({
+        success: false,
+        message: 'Проект не найден'
+      });
+    }
+
+    const defect = new Defect({
+      title,
+      description,
+      category,
+      severity,
+      priority,
+      project,
+      reporter,
+      location,
+      estimatedHours,
+      dueDate
+    });
+
+    // Добавляем в историю статусов
+    defect.statusHistory.push({
+      status: 'open',
+      changedBy: reporter,
+      comment: 'Дефект создан'
+    });
+
+    await defect.save();
+
+    const populatedDefect = await Defect.findById(defect._id)
+      .populate('project', 'name location')
+      .populate('reporter', 'firstName lastName email role');
+
+    logger.info(`New defect created: ${defect._id} by ${reporter}`);
+
+    res.status(201).json({
+      success: true,
+      message: 'Дефект успешно создан',
+      data: populatedDefect
+    });
+  } catch (error) {
+    logger.error('Create defect error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при создании дефекта'
+    });
+  }
+});
+
+// Обновить дефект
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+    const { userId } = req.body; // ID пользователя, вносящего изменения
+
+    const defect = await Defect.findById(id);
+    if (!defect) {
+      return res.status(404).json({
+        success: false,
+        message: 'Дефект не найден'
+      });
+    }
+
+    // Если изменяется статус, добавляем в историю
+    if (updates.status && updates.status !== defect.status) {
+      defect.statusHistory.push({
+        status: updates.status,
+        changedBy: userId,
+        comment: updates.statusComment || 'Статус изменен'
+      });
+
+      // Если статус "resolved", устанавливаем дату решения
+      if (updates.status === 'resolved') {
+        updates.resolvedDate = new Date();
       }
     }
 
-    res.status(201).json(defect);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
+    // Обновляем дефект
+    Object.keys(updates).forEach(key => {
+      if (key !== 'statusComment' && key !== 'userId') {
+        defect[key] = updates[key];
+      }
+    });
+
+    await defect.save();
+
+    const updatedDefect = await Defect.findById(id)
+      .populate('project', 'name location')
+      .populate('reporter', 'firstName lastName email role')
+      .populate('assignee', 'firstName lastName email role');
+
+    logger.info(`Defect updated: ${id} by ${userId}`);
+
+    res.json({
+      success: true,
+      message: 'Дефект успешно обновлен',
+      data: updatedDefect
+    });
+  } catch (error) {
+    logger.error('Update defect error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при обновлении дефекта'
+    });
   }
 });
 
-// Get detail
-router.get('/:id', async (req, res) => {
-  try {
-    const id = Number(req.params.id);
-    const { rows } = await db.query('SELECT * FROM defects WHERE id = $1', [id]);
-    if (!rows.length) return res.status(404).json({ error: 'Not found' });
-    const defect = rows[0];
-    const { rows: atts } = await db.query('SELECT * FROM attachments WHERE defect_id = $1', [id]);
-    const { rows: comments } = await db.query(
-      'SELECT c.*, u.email, u.name FROM comments c LEFT JOIN users u ON u.id = c.user_id WHERE c.defect_id = $1 ORDER BY c.created_at ASC',
-      [id]
-    );
-    res.json({ ...defect, attachments: atts, comments });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
-  }
-});
-
-// Add comment
+// Добавить комментарий к дефекту
 router.post('/:id/comments', async (req, res) => {
   try {
-    const id = Number(req.params.id);
-    const { content } = req.body;
-    if (!content) return res.status(400).json({ error: 'content required' });
-    const { rows } = await db.query(
-      'INSERT INTO comments (defect_id, user_id, content) VALUES ($1,$2,$3) RETURNING *',
-      [id, req.user ? req.user.id : null, content]
-    );
-    res.status(201).json(rows[0]);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'server error' });
+    const { id } = req.params;
+    const { content, author, isInternal = false } = req.body;
+
+    const defect = await Defect.findById(id);
+    if (!defect) {
+      return res.status(404).json({
+        success: false,
+        message: 'Дефект не найден'
+      });
+    }
+
+    defect.comments.push({
+      content,
+      author,
+      isInternal
+    });
+
+    await defect.save();
+
+    const updatedDefect = await Defect.findById(id)
+      .populate('comments.author', 'firstName lastName email role avatar');
+
+    logger.info(`Comment added to defect: ${id} by ${author}`);
+
+    res.json({
+      success: true,
+      message: 'Комментарий добавлен',
+      data: updatedDefect.comments[updatedDefect.comments.length - 1]
+    });
+  } catch (error) {
+    logger.error('Add comment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при добавлении комментария'
+    });
   }
 });
 
-module.exports = router;
+// Статистика дефектов
+router.get('/stats/dashboard', async (req, res) => {
+  try {
+    const { project } = req.query;
+    const filters = project ? { project } : {};
+
+    const stats = await Promise.all([
+      // Статусы
+      Defect.aggregate([
+        { $match: filters },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      // Приоритеты
+      Defect.aggregate([
+        { $match: filters },
+        { $group: { _id: '$severity', count: { $sum: 1 } } }
+      ]),
+      // Категории
+      Defect.aggregate([
+        { $match: filters },
+        { $group: { _id: '$category', count: { $sum: 1 } } }
+      ]),
+      // Общая статистика
+      Defect.countDocuments(filters),
+      Defect.countDocuments({ ...filters, status: 'open' }),
+      Defect.countDocuments({ ...filters, severity: 'critical' }),
+      Defect.countDocuments({ 
+        ...filters, 
+        dueDate: { $lt: new Date() }, 
+        status: { $nin: ['resolved', 'closed'] } 
+      })
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        byStatus: stats[0],
+        bySeverity: stats[1],
+        byCategory: stats[2],
+        total: stats[3],
+        open: stats[4],
+        critical: stats[5],
+        overdue: stats[6]
+      }
+    });
+  } catch (error) {
+    logger.error('Get stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Ошибка при получении статистики'
+    });
+  }
+});
+
+export default router;
