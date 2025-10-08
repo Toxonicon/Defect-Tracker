@@ -9,13 +9,14 @@ import { fileURLToPath } from 'url';
 import { connectDatabase, initializeIndexes } from './config/database-postgres.js';
 import { logger } from './utils/logger.js';
 
-// Import models to initialize associations
-import './models/index-postgres.js';
+// Import models to initialize associations (only when database is available)
+// import './models/index-postgres.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
 import projectRoutes from './routes/projects.js';
 import defectRoutes from './routes/defects.js';
+import mockDataRoutes from './routes/mock-data.js';
 
 // ES Module equivalents for __dirname
 const __filename = fileURLToPath(import.meta.url);
@@ -46,10 +47,16 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
+// Database connection flag
+let isDatabaseConnected = false;
+
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/defects', defectRoutes);
+
+// Mock data routes (fallback when database is not available)
+app.use('/api', mockDataRoutes);
 
 // Basic health check route
 app.get('/api/health', (req, res) => {
@@ -57,7 +64,9 @@ app.get('/api/health', (req, res) => {
     success: true, 
     message: 'Defect Tracker API is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    database: isDatabaseConnected ? 'connected' : 'disconnected',
+    mode: isDatabaseConnected ? 'production' : 'development'
   });
 });
 
@@ -80,26 +89,33 @@ app.use((req, res) => {
 
 // Database connection and server startup
 const startServer = async () => {
+  const PORT = process.env.PORT || 3000;
+  
   try {
-    // Connect to database
+    // Try to connect to database
     await connectDatabase();
     await initializeIndexes();
+    isDatabaseConnected = true;
     
-    const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT}`);
-      logger.info(`Health check: http://localhost:${PORT}/api/health`);
+      logger.info(`Server running on port ${PORT} with PostgreSQL`);
       console.log(`🚀 Defect Tracker API running on http://localhost:${PORT}`);
       console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`✅ PostgreSQL database connected`);
     });
   } catch (error) {
-    logger.error('Failed to start server:', error);
+    logger.error('Failed to connect to PostgreSQL:', error);
+    
     // Запускаем без БД для разработки
-    const PORT = process.env.PORT || 3000;
+    logger.info('Starting server without database for development...');
+    isDatabaseConnected = false;
+    
     app.listen(PORT, () => {
-      logger.info(`Server running on port ${PORT} (without database)`);
-      console.log(`🚀 Defect Tracker API running on http://localhost:${PORT} (no DB)`);
+      logger.info(`Server running on port ${PORT} (development mode - no database)`);
+      console.log(`🚀 Defect Tracker API running on http://localhost:${PORT} (Development Mode)`);
       console.log(`📋 Health check: http://localhost:${PORT}/api/health`);
+      console.log(`⚠️  Database not connected - using mock data for development`);
+      console.log(`📱 Frontend can connect to http://localhost:${PORT}/api`);
     });
   }
 };

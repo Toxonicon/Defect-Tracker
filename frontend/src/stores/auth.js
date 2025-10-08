@@ -1,52 +1,49 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '../services/api'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token'))
-  const user = ref(null)
+  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)
 
   const login = async (credentials) => {
     loading.value = true
+    
+    // Симуляция API запроса
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    
     try {
-      const response = await api.post('/auth/login', credentials)
-      
-      if (response.data.success) {
-        token.value = response.data.token
-        user.value = response.data.user
-        localStorage.setItem('token', token.value)
-        api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
+      // Простая проверка - любые данные считаются валидными
+      if (credentials.email && credentials.password) {
+        const mockUser = {
+          id: 1,
+          email: credentials.email,
+          firstName: 'Тест',
+          lastName: 'Пользователь',
+          fullName: 'Тест Пользователь',
+          role: 'engineer'
+        }
+        
+        const mockToken = 'demo-token-' + Date.now()
+        
+        token.value = mockToken
+        user.value = mockUser
+        localStorage.setItem('token', mockToken)
+        localStorage.setItem('user', JSON.stringify(mockUser))
+        
         return { success: true }
+      } else {
+        return {
+          success: false,
+          message: 'Введите email и пароль'
+        }
       }
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || 'Ошибка при входе'
-      }
-    } finally {
-      loading.value = false
-    }
-  }
-
-  const register = async (userData) => {
-    loading.value = true
-    try {
-      const response = await api.post('/auth/register', userData)
-      
-      if (response.data.success) {
-        token.value = response.data.token
-        user.value = response.data.user
-        localStorage.setItem('token', token.value)
-        api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-        return { success: true }
-      }
-    } catch (error) {
-      return {
-        success: false,
-        message: error.response?.data?.message || 'Ошибка при регистрации'
+        message: 'Ошибка при входе'
       }
     } finally {
       loading.value = false
@@ -57,29 +54,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     user.value = null
     localStorage.removeItem('token')
-    delete api.defaults.headers.common['Authorization']
-  }
-
-  const loadUser = async () => {
-    if (!token.value) return
-
-    try {
-      api.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-      const response = await api.get('/auth/profile')
-      
-      if (response.data.success) {
-        user.value = response.data.user
-      } else {
-        logout()
-      }
-    } catch (error) {
-      logout()
-    }
-  }
-
-  // Initialize auth state
-  if (token.value) {
-    loadUser()
+    localStorage.removeItem('user')
   }
 
   return {
@@ -88,8 +63,6 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     login,
-    register,
-    logout,
-    loadUser
+    logout
   }
 })

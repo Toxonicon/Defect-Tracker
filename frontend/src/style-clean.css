@@ -1,0 +1,36 @@
+/* Минималистичные чистые стили */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: white;
+  color: #000;
+}
+
+#app {
+  background: white;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Скрываем абсолютно все элементы */
+* {
+  display: none !important;
+}
+
+/* Показываем только основной контейнер */
+#app {
+  display: block !important;
+  background: white !important;
+}
+
+html, body {
+  display: block !important;
+  background: white !important;
+}

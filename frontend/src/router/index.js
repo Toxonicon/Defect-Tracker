@@ -3,14 +3,14 @@ import { useAuthStore } from '../stores/auth'
 
 // Layouts
 import AuthLayout from '../layouts/AuthLayout.vue'
-import DashboardLayout from '../layouts/DashboardLayout.vue'
+import DashboardLayout from '../layouts/DashboardLayoutSimple.vue'
 
 // Auth Views
-import Login from '../views/auth/Login.vue'
+import Login from '../views/auth/LoginSimple.vue'
 import Register from '../views/auth/Register.vue'
 
 // Dashboard Views
-import Dashboard from '../views/Dashboard.vue'
+import Dashboard from '../views/DashboardSimple.vue'
 import Projects from '../views/Projects.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import Defects from '../views/Defects.vue'

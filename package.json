@@ -1,0 +1,39 @@
+{
+  "name": "defect-tracker",
+  "version": "1.0.0",
+  "description": "Система управления дефектами на строительных объектах",
+  "main": "start.js",
+  "scripts": {
+    "start": "node start.js",
+    "dev": "node start.js",
+    "frontend": "cd frontend && npm run dev",
+    "backend": "cd backend && npm run dev",
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build",
+    "clean": "rimraf frontend/dist backend/dist frontend/node_modules backend/node_modules node_modules",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "setup": "npm run install-all && echo Setup complete!"
+  },
+  "keywords": [
+    "defect-tracking",
+    "construction",
+    "vue",
+    "node",
+    "postgresql"
+  ],
+  "author": "Toxonicon",
+  "license": "MIT",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Toxonicon/Defect-Tracker.git"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "rimraf": "^4.1.2"
+  }
+}
