@@ -14,6 +14,7 @@ import Dashboard from '../views/DashboardSimple.vue'
 import Projects from '../views/ProjectsSimple.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
 import CreateProject from '../views/CreateProject.vue'
+import EditProject from '../views/EditProject.vue'
 import Defects from '../views/DefectsSimple.vue'
 import DefectDetail from '../views/DefectDetail.vue'
 import CreateDefect from '../views/CreateDefect.vue'
@@ -70,6 +71,12 @@ const routes = [
         props: true
       },
       {
+        path: 'projects/:id/edit',
+        name: 'EditProject',
+        component: EditProject,
+        props: true
+      },
+      {
         path: 'defects',
         name: 'Defects',
         component: Defects
@@ -88,8 +95,7 @@ const routes = [
       {
         path: 'reports',
         name: 'Reports',
-        component: Reports,
-        meta: { requiresRoles: ['manager', 'supervisor'] }
+        component: Reports
       },
       {
         path: 'profile',

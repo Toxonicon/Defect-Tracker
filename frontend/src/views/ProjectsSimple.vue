@@ -25,8 +25,8 @@
           </div>
         </div>
         <div class="project-actions">
-          <button class="btn btn-secondary">Открыть</button>
-          <button class="btn btn-outline">Редактировать</button>
+          <button class="btn btn-secondary" @click="openProject(project.id)">Открыть</button>
+          <button class="btn btn-outline" @click="editProject(project.id)">Редактировать</button>
         </div>
       </div>
     </div>
@@ -86,6 +86,16 @@ const getStatusLabel = (status) => {
 
 const createProject = () => {
   router.push('/projects/create')
+}
+
+const openProject = (id) => {
+  console.log('Открытие проекта:', id)
+  router.push(`/projects/${id}`)
+}
+
+const editProject = (id) => {
+  console.log('Редактирование проекта:', id)
+  router.push(`/projects/${id}/edit`)
 }
 </script>
 

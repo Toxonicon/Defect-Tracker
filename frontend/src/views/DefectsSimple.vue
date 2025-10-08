@@ -24,7 +24,12 @@
     </div>
 
     <div class="defects-list">
-      <div v-for="defect in filteredDefects" :key="defect.id" class="defect-card">
+      <div 
+        v-for="defect in filteredDefects" 
+        :key="defect.id" 
+        class="defect-card"
+        @click="openDefect(defect.id)"
+      >
         <div class="defect-header">
           <div class="defect-info">
             <h3>{{ defect.title }}</h3>
@@ -57,11 +62,6 @@
               {{ getPriorityLabel(defect.priority) }}
             </span>
           </div>
-        </div>
-
-        <div class="defect-actions">
-          <button class="btn btn-secondary" @click="openDefect(defect.id)">Открыть</button>
-          <button class="btn btn-outline" @click="editDefect(defect.id)">Редактировать</button>
         </div>
       </div>
     </div>
@@ -273,6 +273,15 @@ const editDefect = (id) => {
   background-clip: padding-box, border-box;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+}
+
+.defect-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 15px 40px rgba(102, 126, 234, 0.3);
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.97), rgba(255,255,255,0.97)),
+    linear-gradient(135deg, #667eea, #f093fb, #43e97b);
 }
 
 .defect-card::before {
@@ -320,6 +329,11 @@ const editDefect = (id) => {
   margin: 0 0 0.5rem 0;
   font-size: 1.4rem;
   font-weight: 800;
+  transition: color 0.3s ease;
+}
+
+.defect-card:hover .defect-info h3 {
+  color: #667eea;
 }
 
 .defect-project {
