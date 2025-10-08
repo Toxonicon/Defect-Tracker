@@ -35,19 +35,24 @@ const logout = () => {
 
 <style scoped>
 .layout {
-  min-height: 100vh;
+  width: 100vw;
+  height: 100vh;
   background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .navbar {
   background: white;
   border-bottom: 1px solid #e2e8f0;
   padding: 1rem 0;
+  flex-shrink: 0;
+  width: 100%;
 }
 
 .nav-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
   padding: 0 2rem;
   display: flex;
   justify-content: space-between;
@@ -98,8 +103,9 @@ const logout = () => {
 }
 
 .main-content {
-  max-width: 1200px;
-  margin: 0 auto;
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
   padding: 2rem;
 }
 

@@ -1,16 +1,22 @@
-/* Базовые стили приложения */
+/* Полноэкранные стили приложения */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-html, body, #app {
-  background: white !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 100vh !important;
+html, body {
+  width: 100vw;
+  height: 100vh;
+  overflow-x: hidden;
   font-family: Arial, sans-serif;
+  background: white;
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  background: white;
 }
 
 /* Магические кнопки */
