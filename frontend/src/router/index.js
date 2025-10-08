@@ -13,6 +13,7 @@ import Register from '../views/auth/Register.vue'
 import Dashboard from '../views/DashboardSimple.vue'
 import Projects from '../views/ProjectsSimple.vue'
 import ProjectDetail from '../views/ProjectDetail.vue'
+import CreateProject from '../views/CreateProject.vue'
 import Defects from '../views/DefectsSimple.vue'
 import DefectDetail from '../views/DefectDetail.vue'
 import CreateDefect from '../views/CreateDefect.vue'
@@ -22,7 +23,7 @@ import Profile from '../views/Profile.vue'
 const routes = [
   {
     path: '/',
-    redirect: '/dashboard'
+    redirect: '/auth/login'
   },
   {
     path: '/auth',
@@ -56,6 +57,11 @@ const routes = [
         path: 'projects',
         name: 'Projects',
         component: Projects
+      },
+      {
+        path: 'projects/create',
+        name: 'CreateProject',
+        component: CreateProject
       },
       {
         path: 'projects/:id',

@@ -2,8 +2,9 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
 export const useAuthStore = defineStore('auth', () => {
-  const token = ref(localStorage.getItem('token'))
-  const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
+  // Начинаем всегда с пустого состояния для демонстрации окна входа
+  const token = ref(null)
+  const user = ref(null)
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!token.value)

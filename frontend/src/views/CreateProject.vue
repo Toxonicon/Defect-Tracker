@@ -1,20 +1,20 @@
 <template>
-  <div class="create-defect">
+  <div class="create-project">
     <div class="header">
       <button @click="goBack" class="back-btn">← Назад</button>
-      <h1>Создать новый дефект</h1>
+      <h1>Создать новый проект</h1>
     </div>
     
     <div class="form-container">
-      <form @submit.prevent="handleSubmit" class="defect-form">
+      <form @submit.prevent="handleSubmit" class="project-form">
         <div class="form-group">
-          <label for="title">Название дефекта *</label>
+          <label for="name">Название проекта *</label>
           <input
-            id="title"
-            v-model="form.title"
+            id="name"
+            v-model="form.name"
             type="text"
             required
-            placeholder="Кратко опишите проблему"
+            placeholder="Введите название проекта"
             class="form-input"
           />
         </div>
@@ -26,60 +26,59 @@
             v-model="form.description"
             required
             rows="5"
-            placeholder="Подробное описание дефекта"
+            placeholder="Подробное описание проекта"
             class="form-input"
           ></textarea>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="project">Проект *</label>
-            <select id="project" v-model="form.project" required class="form-input">
-              <option value="">Выберите проект</option>
-              <option value="project1">Проект Alpha</option>
-              <option value="project2">Проект Beta</option>
-              <option value="project3">Проект Gamma</option>
-              <option value="project4">Проект Delta</option>
+            <label for="status">Статус *</label>
+            <select id="status" v-model="form.status" required class="form-input">
+              <option value="planning">Планирование</option>
+              <option value="active">Активный</option>
+              <option value="onhold">Приостановлен</option>
+              <option value="completed">Завершен</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label for="priority">Приоритет *</label>
-            <select id="priority" v-model="form.priority" required class="form-input">
-              <option value="">Выберите приоритет</option>
-              <option value="low">Низкий</option>
-              <option value="medium">Средний</option>
-              <option value="high">Высокий</option>
-              <option value="critical">Критический</option>
-            </select>
+            <label for="budget">Бюджет</label>
+            <input
+              id="budget"
+              v-model="form.budget"
+              type="number"
+              placeholder="0"
+              class="form-input"
+            />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="severity">Серьезность *</label>
-            <select id="severity" v-model="form.severity" required class="form-input">
-              <option value="">Выберите серьезность</option>
-              <option value="minor">Незначительная</option>
-              <option value="major">Значительная</option>
-              <option value="critical">Критическая</option>
-            </select>
+            <label for="startDate">Дата начала</label>
+            <input
+              id="startDate"
+              v-model="form.startDate"
+              type="date"
+              class="form-input"
+            />
           </div>
 
           <div class="form-group">
-            <label for="status">Статус</label>
-            <select id="status" v-model="form.status" class="form-input">
-              <option value="new">Новый</option>
-              <option value="open">Открыт</option>
-              <option value="in_progress">В работе</option>
-              <option value="resolved">Решен</option>
-            </select>
+            <label for="endDate">Дата окончания</label>
+            <input
+              id="endDate"
+              v-model="form.endDate"
+              type="date"
+              class="form-input"
+            />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="assignee">Исполнитель</label>
-          <select id="assignee" v-model="form.assignee" class="form-input">
+          <label for="manager">Менеджер проекта</label>
+          <select id="manager" v-model="form.manager" class="form-input">
             <option value="">Не назначен</option>
             <option value="user1">Иван Петров</option>
             <option value="user2">Мария Сидорова</option>
@@ -89,76 +88,70 @@
         </div>
 
         <div class="form-group">
-          <label for="dueDate">Срок исполнения</label>
+          <label for="location">Локация</label>
           <input
-            id="dueDate"
-            v-model="form.dueDate"
-            type="date"
+            id="location"
+            v-model="form.location"
+            type="text"
+            placeholder="Адрес или местоположение проекта"
             class="form-input"
           />
         </div>
 
         <div class="form-actions">
-          <button type="button" @click="goBack" class="btn btn-cancel">Отмена</button>
-          <button type="submit" class="btn btn-submit">Создать дефект</button>
+          <button type="button" @click="goBack" class="btn btn-cancel">
+            Отмена
+          </button>
+          <button type="submit" class="btn btn-submit">
+            Создать проект
+          </button>
         </div>
       </form>
-    </div>
 
-    <div v-if="showSuccess" class="success-message">
-      ✓ Дефект успешно создан!
+      <div v-if="showSuccess" class="success-message">
+        ✅ Проект успешно создан!
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
-
-const form = ref({
-  title: '',
-  description: '',
-  project: '',
-  priority: '',
-  severity: '',
-  status: 'new',
-  assignee: '',
-  dueDate: ''
-})
-
 const showSuccess = ref(false)
 
+const form = reactive({
+  name: '',
+  description: '',
+  status: 'planning',
+  budget: '',
+  startDate: '',
+  endDate: '',
+  manager: '',
+  location: ''
+})
+
 const goBack = () => {
-  router.push('/dashboard')
+  router.push('/projects')
 }
 
 const handleSubmit = () => {
-  console.log('Создание дефекта:', form.value)
+  console.log('Создание проекта:', form)
   
   // Показываем сообщение об успехе
   showSuccess.value = true
   
-  // Сбрасываем форму
+  // Через 2 секунды перенаправляем на список проектов
   setTimeout(() => {
-    form.value = {
-      title: '',
-      description: '',
-      project: '',
-      priority: '',
-      severity: '',
-      status: 'new',
-      assignee: '',
-      dueDate: ''
-    }
-    showSuccess.value = false
+    router.push('/projects')
   }, 2000)
 }
 </script>
 
 <style scoped>
-.create-defect {
+.create-project {
   width: 100%;
   height: 100%;
   padding: 2rem;
@@ -216,7 +209,7 @@ h1 {
   background-clip: padding-box, border-box;
 }
 
-.defect-form {
+.project-form {
   display: flex;
   flex-direction: column;
   gap: 2rem;
@@ -335,7 +328,7 @@ select.form-input {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 50%, #4facfe 100%);
   background-size: 200% auto;
   color: white;
 }
@@ -343,7 +336,7 @@ select.form-input {
 .btn-submit:hover {
   background-position: right center;
   transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 10px 30px rgba(67, 233, 123, 0.5);
 }
 
 .success-message {
@@ -374,7 +367,7 @@ select.form-input {
 }
 
 @media (max-width: 768px) {
-  .create-defect {
+  .create-project {
     padding: 1rem;
   }
   
