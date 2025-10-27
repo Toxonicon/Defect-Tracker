@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Список дефектов - Defect Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">
+        <i class="bi bi-list-ul"></i> Список дефектов
+    </h1>
+    {% if current_user.is_engineer or current_user.is_manager %}
+    <a href="{{ url_for('defects.create_defect') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Создать дефект
+    </a>
+    {% endif %}
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="status" class="form-label">Статус</label>
+                <select class="form-select" id="status" name="status">
+                    <option value="">Все статусы</option>
+                    <option value="open" {% if status_filter == 'open' %}selected{% endif %}>Открыт</option>
+                    <option value="assigned" {% if status_filter == 'assigned' %}selected{% endif %}>Назначен</option>
+                    <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>В работе</option>
+                    <option value="resolved" {% if status_filter == 'resolved' %}selected{% endif %}>Решен</option>
+                    <option value="closed" {% if status_filter == 'closed' %}selected{% endif %}>Закрыт</option>
+                </select>
+            </div>
+            
+            <div class="col-md-4">
+                <label for="priority" class="form-label">Приоритет</label>
+                <select class="form-select" id="priority" name="priority">
+                    <option value="">Все приоритеты</option>
+                    <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Низкий</option>
+                    <option value="normal" {% if priority_filter == 'normal' %}selected{% endif %}>Обычный</option>
+                    <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>Высокий</option>
+                    <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Срочный</option>
+                </select>
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid gap-2 d-md-block">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Фильтр
+                    </button>
+                    <a href="{{ url_for('defects.list_defects') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-x-circle"></i> Сбросить
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Defects List -->
+{% if defects.items %}
+<div class="row">
+    {% for defect in defects.items %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card defect-card h-100">
+            <div class="card-header d-flex justify-content-between">
+                <small class="text-muted">#{{ defect.id }}</small>
+                <span class="badge status-{{ defect.status }}">
+                    {% if defect.status == 'open' %}Открыт
+                    {% elif defect.status == 'assigned' %}Назначен
+                    {% elif defect.status == 'in_progress' %}В работе
+                    {% elif defect.status == 'resolved' %}Решен
+                    {% elif defect.status == 'closed' %}Закрыт
+                    {% endif %}
+                </span>
+            </div>
+            
+            <div class="card-body">
+                <h5 class="card-title">
+                    {{ defect.title }}
+                    {% if defect.is_overdue %}
+                        <i class="bi bi-exclamation-triangle text-danger" title="Просрочен"></i>
+                    {% endif %}
+                </h5>
+                
+                <p class="card-text">{{ defect.description[:100] }}{% if defect.description|length > 100 %}...{% endif %}</p>
+                
+                <div class="mb-2">
+                    <small class="text-muted">
+                        <i class="bi bi-geo-alt"></i> {{ defect.location }}
+                    </small>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="badge severity-{{ defect.severity }} me-1">
+                            {% if defect.severity == 'low' %}Низкая
+                            {% elif defect.severity == 'medium' %}Средняя
+                            {% elif defect.severity == 'high' %}Высокая
+                            {% elif defect.severity == 'critical' %}Критическая
+                            {% endif %}
+                        </span>
+                        
+                        <span class="badge priority-{{ defect.priority }}">
+                            {% if defect.priority == 'low' %}Низкий
+                            {% elif defect.priority == 'normal' %}Обычный
+                            {% elif defect.priority == 'high' %}Высокий
+                            {% elif defect.priority == 'urgent' %}Срочный
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <small class="text-muted">
+                        {{ defect.created_at.strftime('%d.%m.%Y %H:%M') }}
+                    </small>
+                    <a href="{{ url_for('defects.view_defect', id=defect.id) }}" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-eye"></i> Просмотр
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if defects.pages > 1 %}
+<nav aria-label="Навигация по страницам">
+    <ul class="pagination justify-content-center">
+        {% if defects.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('defects.list_defects', page=defects.prev_num, status=status_filter, priority=priority_filter) }}">
+                &laquo; Предыдущая
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for page_num in defects.iter_pages() %}
+            {% if page_num %}
+                {% if page_num != defects.page %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('defects.list_defects', page=page_num, status=status_filter, priority=priority_filter) }}">
+                        {{ page_num }}
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_num }}</span>
+                </li>
+                {% endif %}
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if defects.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('defects.list_defects', page=defects.next_num, status=status_filter, priority=priority_filter) }}">
+                Следующая &raquo;
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-5">
+    <i class="bi bi-inbox" style="font-size: 4rem; color: #6c757d;"></i>
+    <h3 class="mt-3 text-muted">Дефекты не найдены</h3>
+    <p class="text-muted">Попробуйте изменить фильтры или создайте новый дефект</p>
+    {% if current_user.is_engineer or current_user.is_manager %}
+    <a href="{{ url_for('defects.create_defect') }}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Создать дефект
+    </a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

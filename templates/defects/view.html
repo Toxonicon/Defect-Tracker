@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Дефект #{{ defect.id }} - Defect Tracker{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2">
+        <i class="bi bi-bug"></i> Дефект #{{ defect.id }}
+        {% if defect.is_overdue %}
+            <i class="bi bi-exclamation-triangle text-danger" title="Просрочен"></i>
+        {% endif %}
+    </h1>
+    <a href="{{ url_for('defects.list_defects') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Назад к списку
+    </a>
+</div>
+
+<div class="row">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <!-- Defect Details -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">{{ defect.title }}</h5>
+                <div>
+                    <span class="badge status-{{ defect.status }} me-1">
+                        {% if defect.status == 'open' %}Открыт
+                        {% elif defect.status == 'assigned' %}Назначен
+                        {% elif defect.status == 'in_progress' %}В работе
+                        {% elif defect.status == 'resolved' %}Решен
+                        {% elif defect.status == 'closed' %}Закрыт
+                        {% endif %}
+                    </span>
+                    
+                    <span class="badge severity-{{ defect.severity }} me-1">
+                        {% if defect.severity == 'low' %}Низкая
+                        {% elif defect.severity == 'medium' %}Средняя
+                        {% elif defect.severity == 'high' %}Высокая
+                        {% elif defect.severity == 'critical' %}Критическая
+                        {% endif %}
+                    </span>
+                    
+                    <span class="badge priority-{{ defect.priority }}">
+                        {% if defect.priority == 'low' %}Низкий
+                        {% elif defect.priority == 'normal' %}Обычный
+                        {% elif defect.priority == 'high' %}Высокий
+                        {% elif defect.priority == 'urgent' %}Срочный
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong><i class="bi bi-geo-alt"></i> Местоположение:</strong>
+                    <span class="text-muted">{{ defect.location }}</span>
+                </div>
+                
+                <div class="mb-3">
+                    <strong><i class="bi bi-text-paragraph"></i> Описание:</strong>
+                    <p class="mt-2">{{ defect.description | nl2br }}</p>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <strong>Создан</strong><br>
+                        <small class="text-muted">{{ defect.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Автор</strong><br>
+                        <small class="text-muted">{{ defect.creator.full_name }}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Исполнитель</strong><br>
+                        <small class="text-muted">
+                            {% if defect.current_assignee %}
+                                {{ defect.current_assignee.full_name }}
+                            {% else %}
+                                Не назначен
+                            {% endif %}
+                        </small>
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Обновлен</strong><br>
+                        <small class="text-muted">{{ defect.updated_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Photos -->
+        {% if photos %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-image"></i> Фотографии
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for photo in photos %}
+                    <div class="col-md-3 mb-3">
+                        <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" 
+                             class="img-fluid photo-thumbnail" 
+                             alt="{{ photo.original_filename }}"
+                             data-bs-toggle="modal" 
+                             data-bs-target="#photoModal{{ photo.id }}">
+                        <div class="text-center">
+                            <small class="text-muted">{{ photo.original_filename }}</small>
+                        </div>
+                        
+                        <!-- Photo Modal -->
+                        <div class="modal fade" id="photoModal{{ photo.id }}" tabindex="-1">
+                            <div class="modal-dialog modal-lg">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">{{ photo.original_filename }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body text-center">
+                                        <img src="{{ url_for('static', filename='uploads/' + photo.filename) }}" 
+                                             class="img-fluid" alt="{{ photo.original_filename }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Comments -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-dots"></i> Комментарии
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Add Comment Form -->
+                <form method="POST" action="{{ url_for('defects.add_comment', id=defect.id) }}" class="mb-4">
+                    <div class="mb-3">
+                        <textarea class="form-control" name="content" rows="3" 
+                                  placeholder="Добавить комментарий..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-chat-plus"></i> Добавить комментарий
+                    </button>
+                </form>
+                
+                <!-- Comments List -->
+                {% if comments %}
+                    {% for comment in comments %}
+                    <div class="border-start border-3 border-primary ps-3 mb-3">
+                        <div class="d-flex justify-content-between">
+                            <strong>{{ comment.author.full_name }}</strong>
+                            <small class="text-muted">{{ comment.created_at.strftime('%d.%m.%Y %H:%M') }}</small>
+                        </div>
+                        <p class="mt-2">{{ comment.content | nl2br }}</p>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <p class="text-muted text-center">Комментариев пока нет</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Status Management -->
+        {% if current_user.is_manager or (current_user.is_engineer and (defect.creator_id == current_user.id or defect.current_assignee == current_user)) %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-gear"></i> Управление статусом
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('defects.update_status', id=defect.id) }}">
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Статус</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="open" {% if defect.status == 'open' %}selected{% endif %}>Открыт</option>
+                            <option value="assigned" {% if defect.status == 'assigned' %}selected{% endif %}>Назначен</option>
+                            <option value="in_progress" {% if defect.status == 'in_progress' %}selected{% endif %}>В работе</option>
+                            <option value="resolved" {% if defect.status == 'resolved' %}selected{% endif %}>Решен</option>
+                            {% if current_user.is_manager %}
+                            <option value="closed" {% if defect.status == 'closed' %}selected{% endif %}>Закрыт</option>
+                            {% endif %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-check-circle"></i> Обновить статус
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Assignment (Managers only) -->
+        {% if current_user.is_manager %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-person-check"></i> Назначение исполнителя
+                </h6>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{{ url_for('defects.assign_defect', id=defect.id) }}">
+                    <div class="mb-3">
+                        <label for="assignee_id" class="form-label">Исполнитель</label>
+                        <select class="form-select" id="assignee_id" name="assignee_id" required>
+                            <option value="">Выберите исполнителя</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="priority" class="form-label">Приоритет</label>
+                        <select class="form-select" id="priority" name="priority">
+                            <option value="low" {% if defect.priority == 'low' %}selected{% endif %}>Низкий</option>
+                            <option value="normal" {% if defect.priority == 'normal' %}selected{% endif %}>Обычный</option>
+                            <option value="high" {% if defect.priority == 'high' %}selected{% endif %}>Высокий</option>
+                            <option value="urgent" {% if defect.priority == 'urgent' %}selected{% endif %}>Срочный</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Примечания</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2"></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-person-plus"></i> Назначить исполнителя
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Defect Info -->
+        <div class="card">
+            <div class="card-header">
+                <h6 class="mb-0">
+                    <i class="bi bi-info-circle"></i> Информация о дефекте
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>ID:</strong> #{{ defect.id }}
+                </div>
+                <div class="mb-2">
+                    <strong>Создан:</strong><br>
+                    <small>{{ defect.created_at.strftime('%d.%m.%Y в %H:%M') }}</small>
+                </div>
+                <div class="mb-2">
+                    <strong>Автор:</strong><br>
+                    {{ defect.creator.full_name }}
+                    <span class="badge role-{{ defect.creator.role }} ms-1">
+                        {% if defect.creator.role == 'engineer' %}Инженер
+                        {% elif defect.creator.role == 'manager' %}Менеджер
+                        {% elif defect.creator.role == 'observer' %}Наблюдатель
+                        {% endif %}
+                    </span>
+                </div>
+                {% if defect.current_assignee %}
+                <div class="mb-2">
+                    <strong>Исполнитель:</strong><br>
+                    {{ defect.current_assignee.full_name }}
+                    <span class="badge role-{{ defect.current_assignee.role }} ms-1">
+                        {% if defect.current_assignee.role == 'engineer' %}Инженер
+                        {% elif defect.current_assignee.role == 'manager' %}Менеджер
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                {% if defect.resolved_at %}
+                <div class="mb-2">
+                    <strong>Решен:</strong><br>
+                    <small>{{ defect.resolved_at.strftime('%d.%m.%Y в %H:%M') }}</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load users for assignment dropdown
+{% if current_user.is_manager %}
+fetch('{{ url_for("defects.users_json") }}')
+    .then(response => response.json())
+    .then(users => {
+        const select = document.getElementById('assignee_id');
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.name} (${user.username})`;
+            {% if defect.current_assignee %}
+            if (user.id === {{ defect.current_assignee.id }}) {
+                option.selected = true;
+            }
+            {% endif %}
+            select.appendChild(option);
+        });
+    });
+{% endif %}
+</script>
+{% endblock %}

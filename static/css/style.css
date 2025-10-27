@@ -1,0 +1,104 @@
+/* Custom styles for Defect Tracker */
+
+:root {
+    --primary-color: #0d6efd;
+    --success-color: #198754;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #0dcaf0;
+}
+
+body {
+    background-color: #f8f9fa;
+}
+
+/* Status badges */
+.status-open { background-color: var(--info-color) !important; }
+.status-assigned { background-color: var(--warning-color) !important; color: #000 !important; }
+.status-in_progress { background-color: var(--primary-color) !important; }
+.status-resolved { background-color: var(--success-color) !important; }
+.status-closed { background-color: #6c757d !important; }
+
+/* Severity badges */
+.severity-low { background-color: #198754 !important; }
+.severity-medium { background-color: #ffc107 !important; color: #000 !important; }
+.severity-high { background-color: #fd7e14 !important; }
+.severity-critical { background-color: #dc3545 !important; }
+
+/* Priority badges */
+.priority-low { background-color: #6c757d !important; }
+.priority-normal { background-color: #0dcaf0 !important; color: #000 !important; }
+.priority-high { background-color: #fd7e14 !important; }
+.priority-urgent { background-color: #dc3545 !important; }
+
+/* Role badges */
+.role-engineer { background-color: #0d6efd !important; }
+.role-manager { background-color: #198754 !important; }
+.role-observer { background-color: #6f42c1 !important; }
+
+/* Cards and layout */
+.defect-card {
+    transition: transform 0.2s;
+}
+
+.defect-card:hover {
+    transform: translateY(-2px);
+}
+
+.stats-card {
+    border-left: 4px solid var(--primary-color);
+}
+
+/* Photo gallery */
+.photo-thumbnail {
+    max-width: 150px;
+    max-height: 150px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.photo-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+/* Form styling */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Dashboard stats */
+.dashboard-stat {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.dashboard-stat.success {
+    background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+}
+
+.dashboard-stat.warning {
+    background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+}
+
+.dashboard-stat.danger {
+    background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .btn {
+        font-size: 0.9rem;
+    }
+}

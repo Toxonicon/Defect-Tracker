@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}Отчёты - Defect Tracker{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h1 class="h2">
+        <i class="bi bi-graph-up"></i> Отчёты и аналитика
+    </h1>
+    <p class="text-muted">Комплексная аналитика по дефектам строительных объектов</p>
+</div>
+
+<div class="row">
+    <!-- Status Report -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart"></i> Распределение по статусам
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if status_report %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Статус</th>
+                                <th class="text-end">Количество</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total = status_report | sum(attribute=1) %}
+                            {% for status, count in status_report %}
+                            <tr>
+                                <td>
+                                    <span class="badge status-{{ status }} me-2">
+                                        {% if status == 'open' %}Открыт
+                                        {% elif status == 'assigned' %}Назначен
+                                        {% elif status == 'in_progress' %}В работе
+                                        {% elif status == 'resolved' %}Решен
+                                        {% elif status == 'closed' %}Закрыт
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                                <td class="text-end">{{ "%.1f" | format((count / total * 100) if total > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary">
+                                <th>Всего</th>
+                                <th class="text-end">{{ total }}</th>
+                                <th class="text-end">100%</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">Данные отсутствуют</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Severity Report -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-exclamation-triangle"></i> Распределение по серьёзности
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if severity_report %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Серьёзность</th>
+                                <th class="text-end">Количество</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total = severity_report | sum(attribute=1) %}
+                            {% for severity, count in severity_report %}
+                            <tr>
+                                <td>
+                                    <span class="badge severity-{{ severity }} me-2">
+                                        {% if severity == 'low' %}Низкая
+                                        {% elif severity == 'medium' %}Средняя
+                                        {% elif severity == 'high' %}Высокая
+                                        {% elif severity == 'critical' %}Критическая
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                                <td class="text-end">{{ "%.1f" | format((count / total * 100) if total > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary">
+                                <th>Всего</th>
+                                <th class="text-end">{{ total }}</th>
+                                <th class="text-end">100%</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">Данные отсутствуют</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Priority Report -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-flag"></i> Распределение по приоритетам
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if priority_report %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Приоритет</th>
+                                <th class="text-end">Количество</th>
+                                <th class="text-end">%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set total = priority_report | sum(attribute=1) %}
+                            {% for priority, count in priority_report %}
+                            <tr>
+                                <td>
+                                    <span class="badge priority-{{ priority }} me-2">
+                                        {% if priority == 'low' %}Низкий
+                                        {% elif priority == 'normal' %}Обычный
+                                        {% elif priority == 'high' %}Высокий
+                                        {% elif priority == 'urgent' %}Срочный
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td class="text-end"><strong>{{ count }}</strong></td>
+                                <td class="text-end">{{ "%.1f" | format((count / total * 100) if total > 0 else 0) }}%</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-secondary">
+                                <th>Всего</th>
+                                <th class="text-end">{{ total }}</th>
+                                <th class="text-end">100%</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">Данные отсутствуют</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- User Activity -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-person-workspace"></i> Активность пользователей
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if user_activity %}
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Пользователь</th>
+                                <th>Роль</th>
+                                <th class="text-end">Создано дефектов</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for full_name, role, defects_created in user_activity %}
+                            <tr>
+                                <td>{{ full_name }}</td>
+                                <td>
+                                    <span class="badge role-{{ role }}">
+                                        {% if role == 'engineer' %}Инженер
+                                        {% elif role == 'manager' %}Менеджер
+                                        {% elif role == 'observer' %}Наблюдатель
+                                        {% endif %}
+                                    </span>
+                                </td>
+                                <td class="text-end"><strong>{{ defects_created }}</strong></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center">Данные отсутствуют</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assignment Statistics -->
+{% if assignment_stats %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-clipboard-check"></i> Статистика назначений
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Исполнитель</th>
+                                <th class="text-end">Активных назначений</th>
+                                <th class="text-center">Нагрузка</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% set max_assignments = assignment_stats | max(attribute=1) if assignment_stats else 0 %}
+                            {% for full_name, assignments in assignment_stats %}
+                            <tr>
+                                <td>{{ full_name }}</td>
+                                <td class="text-end"><strong>{{ assignments }}</strong></td>
+                                <td class="text-center">
+                                    <div class="progress" style="width: 100px;">
+                                        {% set percentage = (assignments / max_assignments * 100) if max_assignments > 0 else 0 %}
+                                        <div class="progress-bar 
+                                            {% if percentage >= 80 %}bg-danger
+                                            {% elif percentage >= 60 %}bg-warning
+                                            {% else %}bg-success
+                                            {% endif %}" 
+                                             style="width: {{ percentage }}%">
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Action Buttons -->
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="{{ url_for('dashboard.dashboard') }}" class="btn btn-outline-primary">
+            <i class="bi bi-house"></i> Вернуться на главную
+        </a>
+        <a href="{{ url_for('defects.list_defects') }}" class="btn btn-primary">
+            <i class="bi bi-list-ul"></i> Список дефектов
+        </a>
+    </div>
+</div>
+{% endblock %}
