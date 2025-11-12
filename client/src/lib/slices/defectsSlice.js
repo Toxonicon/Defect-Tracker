@@ -1,0 +1,449 @@
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { defectsApi, attachmentsApi } from '../api';
+
+// Async thunks
+export const fetchDefects = createAsyncThunk(
+  'defects/fetchDefects',
+  async (userFilters = {}, { rejectWithValue, getState }) => {
+    try {
+      // Получаем текущие фильтры из состояния
+      const { filters, pagination } = getState().defects;
+      
+      // Создаем копию фильтров, чтобы избежать мутации
+      const safeFilters = { ...filters };
+      
+      // Удаляем несериализуемые значения
+      Object.keys(safeFilters).forEach(key => {
+        const value = safeFilters[key];
+        if (
+          value !== null && 
+          typeof value === 'object' && 
+          !Array.isArray(value) &&
+          !(value instanceof Date)
+        ) {
+          delete safeFilters[key];
+        }
+      });
+      
+      // Объединяем очищенные фильтры с пользовательскими
+      const combinedFilters = {
+        ...safeFilters,
+        ...userFilters,
+        page: pagination.page,
+        limit: pagination.limit
+      };
+      
+      // Удаляем null и undefined значения
+      const cleanFilters = Object.fromEntries(
+        Object.entries(combinedFilters)
+          .filter(([_, v]) => v != null)
+      );
+      
+      console.log('Отправка запроса с фильтрами:', cleanFilters);
+      
+      const response = await defectsApi.getAll(cleanFilters);
+      return {
+        defects: response.data.defects,
+        total: response.data.total,
+        page: response.data.page,
+        limit: response.data.limit
+      };
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Не удалось получить список дефектов'
+      );
+    }
+  }
+);
+
+export const fetchDefectById = createAsyncThunk(
+  'defects/fetchDefectById',
+  async (id, { rejectWithValue }) => {
+    try {
+      const response = await defectsApi.getById(id);
+      
+      // Нормализуем структуру комментариев если они есть
+      const defect = response.data.defect;
+      
+      if (defect && defect.comments) {
+        // Убедимся, что все комментарии имеют правильную структуру
+        defect.comments = defect.comments.map(comment => ({
+          ...comment,
+          // Если старый формат, преобразуем к новому
+          user: comment.user || {
+            id: comment.user_id,
+            name: comment.user_name || 'Пользователь',
+            role: comment.user_role || 'user'
+          },
+          createdAt: comment.createdAt || comment.created_at,
+          updatedAt: comment.updatedAt || comment.updated_at
+        }));
+      }
+      
+      return defect;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Не удалось загрузить дефект');
+    }
+  }
+);
+
+// Создание дефекта
+export const createDefect = createAsyncThunk(
+  'defects/createDefect',
+  async ({ defectData, attachments = [] }, { rejectWithValue }) => {
+    try {
+      console.log('Отправляемые данные:', defectData);
+      
+      const response = await defectsApi.create(defectData);
+      const newDefect = response.data.defect;
+      
+      // Если есть вложения и дефект успешно создан, загружаем их
+      if (attachments.length > 0 && newDefect && newDefect.id) {
+        try {
+          await defectsApi.uploadAttachments(newDefect.id, attachments);
+        } catch (attachmentError) {
+          console.error('Ошибка при загрузке вложений:', attachmentError);
+          // Продолжаем даже при ошибке загрузки вложений - просто логируем её
+          // и не прерываем выполнение, так как основной дефект уже создан
+        }
+      }
+      
+      return newDefect;
+    } catch (error) {
+      console.error('Ошибка при создании дефекта:', error.response?.data || error);
+      return rejectWithValue(error.response?.data || {
+        success: false,
+        message: error.message || 'Не удалось создать дефект'
+      });
+    }
+  }
+);
+
+export const updateDefect = createAsyncThunk(
+  'defects/updateDefect',
+  async ({ id, defectData, attachments }, { rejectWithValue }) => {
+    try {
+      // Обновляем дефект
+      const response = await defectsApi.update(id, defectData);
+      const defect = response.data.defect;
+      
+      // Если есть вложения, загружаем их
+      if (attachments && attachments.length > 0) {
+        await defectsApi.uploadAttachments(id, attachments);
+      }
+      
+      return defect;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Не удалось обновить дефект'
+      );
+    }
+  }
+);
+
+export const deleteDefect = createAsyncThunk(
+  'defects/deleteDefect',
+  async (id, { rejectWithValue }) => {
+    try {
+      await defectsApi.delete(id);
+      return id;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Не удалось удалить дефект'
+      );
+    }
+  }
+);
+
+// Обновить action для добавления комментариев
+export const addComment = createAsyncThunk(
+  'defects/addComment',
+  async ({ defectId, text }, { rejectWithValue, getState }) => {
+    try {
+      console.log('Отправка комментария:', { text });
+      const response = await defectsApi.addComment(defectId, text);
+      
+      return response.data.comment;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Не удалось добавить комментарий'
+      );
+    }
+  }
+);
+
+// Добавьте новые thunks и состояния для вложений
+
+// Загрузка списка вложений дефекта
+export const fetchAttachments = createAsyncThunk(
+  'defects/fetchAttachments',
+  async (defectId, { rejectWithValue }) => {
+    try {
+      const response = await attachmentsApi.getByDefect(defectId);
+      return response.data.attachments;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Не удалось загрузить вложения');
+    }
+  }
+);
+
+// Загрузка файлов на сервер
+export const uploadAttachments = createAsyncThunk(
+  'defects/uploadAttachments',
+  async ({ defectId, formData }, { rejectWithValue }) => {
+    try {
+      const response = await attachmentsApi.upload(defectId, formData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Не удалось загрузить файлы');
+    }
+  }
+);
+
+// Удаление вложения
+export const deleteAttachment = createAsyncThunk(
+  'defects/deleteAttachment',
+  async (attachmentId, { rejectWithValue }) => {
+    try {
+      console.log(`Отправка запроса на удаление вложения с ID: ${attachmentId}`);
+      const response = await attachmentsApi.delete(attachmentId);
+      console.log('Ответ от сервера:', response.data);
+      return { id: attachmentId, ...response.data };
+    } catch (error) {
+      console.error('Ошибка при удалении вложения:', error.response?.data || error);
+      return rejectWithValue(
+        error.response?.data?.message || 'Не удалось удалить файл'
+      );
+    }
+  }
+);
+
+const initialState = {
+  defects: [],
+  currentDefect: null,
+  loading: false,
+  error: null,
+  createSuccess: false,
+  updateSuccess: false,
+  deleteSuccess: false,
+  filters: {
+    status: null,
+    priority: null,
+    project_id: null,
+    assigned_to: null
+  },
+  pagination: {
+    page: 1,
+    limit: 10,
+    total: 0
+  },
+  attachments: [],
+  attachmentsLoading: false,
+  attachmentsError: null,
+};
+
+const defectsSlice = createSlice({
+  name: 'defects',
+  initialState,
+  reducers: {
+    resetDefectMessages: (state) => {
+      state.error = null;
+      state.createSuccess = false;
+      state.updateSuccess = false;
+      state.deleteSuccess = false;
+    },
+    resetCurrentDefect: (state) => {
+      state.currentDefect = null;
+    },
+    setFilters: (state, action) => {
+      // Проверяем, что action.payload - это объект и не содержит React события
+      if (action.payload && typeof action.payload === 'object') {
+        // Фильтруем только сериализуемые значения
+        const safePayload = Object.fromEntries(
+          Object.entries(action.payload)
+            .filter(([_, value]) => 
+              value === null || 
+              typeof value !== 'object' || 
+              Array.isArray(value)
+            )
+        );
+        
+        // Обновляем фильтры безопасными значениями
+        state.filters = {
+          ...state.filters,
+          ...safePayload
+        };
+      }
+    },
+    setPage: (state, action) => {
+      state.pagination.page = action.payload;
+    }
+  },
+  extraReducers: (builder) => {
+    builder
+      // fetchDefects
+      .addCase(fetchDefects.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchDefects.fulfilled, (state, action) => {
+        state.loading = false;
+        
+        // Обрабатываем данные в новом формате с пагинацией
+        if (action.payload && action.payload.defects) {
+          state.defects = action.payload.defects;
+          state.pagination.total = action.payload.total || 0;
+          state.pagination.page = action.payload.page || 1;
+          state.pagination.limit = action.payload.limit || 10;
+        } else if (Array.isArray(action.payload)) {
+          // Поддержка старого формата для совместимости
+          state.defects = action.payload;
+        }
+      })
+      .addCase(fetchDefects.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // fetchDefectById
+      .addCase(fetchDefectById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchDefectById.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentDefect = action.payload;
+      })
+      .addCase(fetchDefectById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      
+      // createDefect
+      .addCase(createDefect.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.createSuccess = false;
+      })
+      .addCase(createDefect.fulfilled, (state, action) => {
+        state.loading = false;
+        state.defects.unshift(action.payload);
+        state.createSuccess = true;
+      })
+      .addCase(createDefect.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || { 
+          message: 'Произошла ошибка при создании дефекта'
+        };
+      })
+      
+      // updateDefect
+      .addCase(updateDefect.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.updateSuccess = false;
+      })
+      .addCase(updateDefect.fulfilled, (state, action) => {
+        state.loading = false;
+        const index = state.defects.findIndex(d => d.id === action.payload.id);
+        if (index !== -1) {
+          state.defects[index] = action.payload;
+        }
+        state.currentDefect = action.payload;
+        state.updateSuccess = true;
+      })
+      .addCase(updateDefect.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.updateSuccess = false;
+      })
+      
+      // deleteDefect
+      .addCase(deleteDefect.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.deleteSuccess = false;
+      })
+      .addCase(deleteDefect.fulfilled, (state, action) => {
+        state.loading = false;
+        state.defects = state.defects.filter(d => d.id !== action.payload);
+        state.deleteSuccess = true;
+      })
+      .addCase(deleteDefect.rejected, (state, action) => {
+        state.loading = false;
+       
+        if (state.currentDefect) {
+          if (!state.currentDefect.comments) {
+            state.currentDefect.comments = [];
+          }
+          state.currentDefect.comments.push(action.payload);
+        }
+      })
+      
+      // Добавление комментария
+      .addCase(addComment.fulfilled, (state, action) => {
+        if (state.currentDefect) {
+          if (!state.currentDefect.comments) {
+            state.currentDefect.comments = [];
+          }
+          
+          // Нормализуем структуру добавляемого комментария
+          const normalizedComment = {
+            ...action.payload,
+            // Убедимся что у нас правильная структура
+            user: action.payload.user || {
+              id: action.payload.user_id,
+              name: action.payload.user_name || 'Пользователь',
+              role: action.payload.user_role || 'user'
+            },
+            createdAt: action.payload.createdAt || action.payload.created_at,
+            updatedAt: action.payload.updatedAt || action.payload.updated_at
+          };
+          
+          state.currentDefect.comments.unshift(normalizedComment);
+        }
+      })
+      .addCase(addComment.rejected, (state, action) => {
+        state.error = action.payload?.message || 'Ошибка при добавлении комментария';
+      })
+      
+      // Обработчики для вложений
+      .addCase(fetchAttachments.pending, (state) => {
+        state.attachmentsLoading = true;
+        state.attachmentsError = null;
+      })
+      .addCase(fetchAttachments.fulfilled, (state, action) => {
+        state.attachmentsLoading = false;
+        state.attachments = action.payload;
+      })
+      .addCase(fetchAttachments.rejected, (state, action) => {
+        state.attachmentsLoading = false;
+        state.attachmentsError = action.payload;
+      })
+      
+      .addCase(uploadAttachments.pending, (state) => {
+        state.attachmentsLoading = true;
+        state.attachmentsError = null;
+      })
+      .addCase(uploadAttachments.fulfilled, (state) => {
+        state.attachmentsLoading = false;
+      })
+      .addCase(uploadAttachments.rejected, (state, action) => {
+        state.attachmentsLoading = false;
+        state.attachmentsError = action.payload;
+      })
+      
+      .addCase(deleteAttachment.fulfilled, (state, action) => {
+        const attachmentId = action.payload.id;
+        state.attachments = state.attachments.filter(attachment => attachment.id !== attachmentId);
+      });
+  }
+});
+
+export const { 
+  resetDefectMessages, 
+  resetCurrentDefect,
+  setFilters,
+  setPage 
+} = defectsSlice.actions;
+export default defectsSlice.reducer;
