@@ -58,7 +58,7 @@ import {
 } from '../../lib/slices/defectsSlice';
 import LoadingScreen from '../../components/common/LoadingScreen';
 import FileUploader from '../../components/common/FileUploader';
-import AttachmentList from '../../components/common/AttachmentList';
+import AttachmentList from '../../components/AttachmentList';
 
 // Форматирование даты
 const formatDate = (dateString) => {
