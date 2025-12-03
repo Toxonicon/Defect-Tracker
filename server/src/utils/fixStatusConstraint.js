@@ -39,7 +39,12 @@ const fixStatusConstraint = async () => {
     
     return true;
   } catch (error) {
-    console.error('Ошибка при исправлении ограничения status:', error);
+    console.error('Ошибка при исправлении ограничения status:');
+    // Более понятный вывод ошибки для диагностики
+    if (error && error.code) {
+      console.error('Postgres error code:', error.code);
+    }
+    console.error(error.message || error);
     return false;
   }
 };

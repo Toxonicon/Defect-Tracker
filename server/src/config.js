@@ -48,4 +48,7 @@ const config = {
   },
 };
 
+// Логируем (без пароля) параметры подключения к БД для диагностики
+console.log('DB config -> host:', config.database.host, 'port:', config.database.port, 'database:', config.database.database, 'user:', config.database.user);
+
 module.exports = config;
