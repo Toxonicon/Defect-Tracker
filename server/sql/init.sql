@@ -45,7 +45,13 @@ CREATE TABLE IF NOT EXISTS defects (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     status VARCHAR(20) NOT NULL DEFAULT 'новый' CHECK (status IN ('новый', 'подтвержден', 'в работе', 'исправлен', 'проверен', 'закрыт', 'отклонен')),
-    priority VARCHAR(20) NOT NULL DEFAULT 'средний' CHECK (priority IN ('низкий', 'средний', 'высокий', 'критический')),
+    -- Допускаем как русские, так и английские обозначения приоритета
+    priority VARCHAR(20) NOT NULL DEFAULT 'средний' CHECK (
+        priority IN (
+            'низкий', 'средний', 'высокий', 'критический',
+            'low', 'medium', 'high', 'critical'
+        )
+    ),
     reported_by INTEGER NOT NULL REFERENCES users(id),
     assigned_to INTEGER REFERENCES users(id),
     due_date TIMESTAMP,
